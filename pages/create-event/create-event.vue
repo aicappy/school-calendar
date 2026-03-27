@@ -14,6 +14,21 @@
 				</text>
 			</view>
 
+			<!-- Event Category -->
+			<view class="form-item">
+				<text class="label">活动类型 *</text>
+				<view class="category-selector">
+					<view 
+						v-for="cat in categories" 
+						:key="cat.value"
+						:class="['category-chip', event.category === cat.value ? 'selected' : '']"
+						@click="event.category = cat.value"
+					>
+						{{ cat.label }}
+					</view>
+				</view>
+			</view>
+
 			<!-- Title -->
 			<view class="form-item">
 				<text class="label">活动标题 *</text>
@@ -93,6 +108,7 @@ export default {
 		return {
 			event: {
 				title: '',
+				category: 'school',  // school or ptsa
 				date: '',
 				time: '',
 				location: '',
@@ -100,8 +116,12 @@ export default {
 				description: '',
 				remindIndex: 0
 			},
+			categories: [
+				{ value: 'school', label: '🏫 学校活动' },
+				{ value: 'ptsa', label: '🤝 PTSA活动' }
+			],
 			remindOptions: ['不提醒', '提前15分钟', '提前30分钟', '提前1小时', '提前1天'],
-			availableGrades: ['全校', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
+			availableGrades: [],
 			selectedGrades: [],
 			isRecording: false,
 			voiceText: ''
@@ -363,6 +383,27 @@ export default {
 	background: #e8f0ff;
 	color: #667eea;
 	border-color: #667eea;
+}
+
+.category-selector {
+	display: flex;
+	gap: 15px;
+	margin-bottom: 15px;
+}
+
+.category-chip {
+	padding: 12px 24px;
+	border-radius: 25px;
+	background: #f0f0f0;
+	color: #666;
+	font-size: 15px;
+	border: 2px solid transparent;
+}
+
+.category-chip.selected {
+	background: linear-gradient(135deg, #667eea, #764ba2);
+	color: white;
+	border-color: transparent;
 }
 
 .voice-input {

@@ -4,15 +4,16 @@
 			"name": "events",
 			"schema": {
 				"bsonType": "object",
-				"required": ["title", "dateTime"],
+				"required": ["title", "dateTime", "category"],
 				"properties": {
 					"title": { "bsonType": "string", "label": "活动标题" },
+					"category": { "bsonType": "string", "label": "活动类型", "enum": ["school", "ptsa"] },
 					"description": { "bsonType": "string", "label": "活动描述" },
 					"imageUrl": { "bsonType": "string", "label": "海报图片" },
 					"dateTime": { "bsonType": "timestamp", "label": "活动时间" },
 					"location": { "bsonType": "string", "label": "活动地点" },
 					"schoolId": { "bsonType": "string", "label": "学校ID" },
-					"section": { "bsonType": "string", "label": "学部", "enum": ["小学部", "初中部", "高中部"] },
+					"section": { "bsonType": "string", "label": "学部" },
 					"grade": { "bsonType": "array", "label": "适用年级" },
 					"remindBefore": { "bsonType": "int", "label": "提前提醒" },
 					"createdBy": { "bsonType": "string", "label": "创建者" },

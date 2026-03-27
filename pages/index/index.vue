@@ -1,11 +1,16 @@
 <template>
 	<view class="container">
-		<!-- Header -->
+		<!-- Calendar Header -->
 		<view class="header">
 			<view class="month-selector">
 				<text class="nav-btn" @click="prevMonth">◀</text>
 				<text class="month-title">{{ currentMonthName }} {{ currentYear }}</text>
 				<text class="nav-btn" @click="nextMonth">▶</text>
+			</view>
+			<view class="category-filter">
+				<view :class="['filter-chip', filterCategory === 'all' ? 'active' : '']" @click="filterCategory = 'all'">全部</view>
+				<view :class="['filter-chip', filterCategory === 'school' ? 'active' : '']" @click="filterCategory = 'school'">🏫 学校</view>
+				<view :class="['filter-chip', filterCategory === 'ptsa' ? 'active' : '']" @click="filterCategory = 'ptsa'">🤝 PTSA</view>
 			</view>
 		</view>
 
@@ -44,7 +49,7 @@
 			>
 				<image v-if="event.imageUrl" :src="event.imageUrl" class="event-thumb" mode="aspectFill"></image>
 				<view class="event-info">
-					<text class="event-title">{{ event.title }}</text>
+					<text class="event-title"><text class="cat-icon">{{ event.category === "school" ? "🏫" : "🤝" }}</text>{{ event.title }}</text>
 					<text class="event-date">📅 {{ formatDate(event.dateTime) }}</text>
 					<text v-if="event.location" class="event-location">📍 {{ event.location }}</text>
 				</view>
@@ -61,7 +66,8 @@ export default {
 			currentMonth: 3,
 			weekDays: ['一', '二', '三', '四', '五', '六', '日'],
 			events: [],
-			calendarDays: []
+			calendarDays: [],
+			filterCategory: 'all'
 		}
 	},
 	computed: {
@@ -116,6 +122,13 @@ export default {
 					allEvents = allEvents.filter(event => event.section === userSection);
 				}
 				// Super admin sees all
+				
+				this.events = allEvents;
+				
+				// Apply category filter
+				if (this.filterCategory !== 'all') {
+					allEvents = allEvents.filter(e => e.category === this.filterCategory);
+				}
 				
 				this.events = allEvents;
 				this.generateCalendar();
@@ -216,6 +229,25 @@ export default {
 	color: white;
 	font-size: 18px;
 	font-weight: bold;
+}
+
+.category-filter {
+	display: flex;
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.filter-chip {
+	padding: 5px 15px;
+	border-radius: 15px;
+	background: rgba(255,255,255,0.2);
+	color: rgba(255,255,255,0.8);
+	font-size: 13px;
+}
+
+.filter-chip.active {
+	background: white;
+	color: #667eea;
 }
 
 .calendar {
