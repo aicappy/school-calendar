@@ -1,0 +1,33 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/event-detail/event-detail",
+    "pages/create-event/create-event"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#667eea",
+    "navigationBarTitleText": "家校日历",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#667eea",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "日历",
+        "iconPath": "static/calendar.png",
+        "selectedIconPath": "static/calendar-active.png"
+      },
+      {
+        "pagePath": "pages/create-event/create-event",
+        "text": "发布",
+        "iconPath": "static/add.png",
+        "selectedIconPath": "static/add-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

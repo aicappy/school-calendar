@@ -1,0 +1,68 @@
+{
+	"collections": [
+		{
+			"name": "events",
+			"schema": {
+				"bsonType": "object",
+				"required": ["title", "dateTime"],
+				"permission": {
+					"read": true,
+					"create": "auth.uid != null",
+					"update": "auth.uid != null",
+					"delete": "auth.uid != null"
+				},
+				"properties": {
+					"title": {
+						"bsonType": "string",
+						"label": "活动标题"
+					},
+					"description": {
+						"bsonType": "string",
+						"label": "活动描述"
+					},
+					"imageUrl": {
+						"bsonType": "string",
+						"label": "海报图片"
+					},
+					"dateTime": {
+						"bsonType": "timestamp",
+						"label": "活动时间"
+					},
+					"location": {
+						"bsonType": "string",
+						"label": "活动地点"
+					},
+					"remindBefore": {
+						"bsonType": "int",
+						"label": "提前提醒分钟数"
+					},
+					"createdAt": {
+						"bsonType": "timestamp",
+						"label": "创建时间"
+					}
+				}
+			}
+		},
+		{
+			"name": "reminders",
+			"schema": {
+				"bsonType": "object",
+				"required": ["eventId", "userId", "remindTime"],
+				"properties": {
+					"eventId": {
+						"bsonType": "string",
+						"label": "活动ID"
+					},
+					"userId": {
+						"bsonType": "string",
+						"label": "用户ID"
+					},
+					"remindTime": {
+						"bsonType": "timestamp",
+						"label": "提醒时间"
+					}
+				}
+			}
+		}
+	]
+}
