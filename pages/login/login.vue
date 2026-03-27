@@ -9,9 +9,15 @@
 			<input class="code-input" v-model="inviteCode" placeholder="请输入邀请码" maxlength="20" />
 		</view>
 		
-		<button class="login-btn" @click="login">
+		<button class="login-btn" @click="submitCode">
 			📱 微信授权登录
 		</button>
+		
+		<view v-if="hasLoggedIn" class="add-more">
+			<text class="add-more-title">已在多个班级群？</text>
+			<input class="code-input second" v-model="secondCode" placeholder="输入第二个邀请码" maxlength="20" />
+			<button class="add-btn" @click="addMoreCode">+ 添加班级</button>
+		</view>
 		
 		<text class="hint">联系班级老师或家委会获取邀请码</text>
 		
@@ -28,7 +34,9 @@ export default {
 	data() {
 		return {
 			inviteCode: '',
-			isAdminCode: false
+			secondCode: '',
+			isAdminCode: false,
+			hasLoggedIn: false
 		}
 	},
 	watch: {
@@ -37,7 +45,7 @@ export default {
 		}
 	},
 	methods: {
-		login() {
+		submitCode() {
 			const code = this.inviteCode.trim().toUpperCase();
 			
 			if (!code) {
@@ -45,8 +53,44 @@ export default {
 				return;
 			}
 			
-			// Verify invite code
 			const db = uniCloud.database();
+			const that = this;
+			
+			// Verify invite code
+			db.collection('invite_codes').where({
+				code: code,
+				used: false
+			}).get().then(res => {
+				if (res.result.data.length === 0) {
+					// Check if already used by this user
+					db.collection('invite_codes').where({
+						code: code
+					}).get().then(oldRes => {
+						if (oldRes.result.data.length > 0 && oldRes.result.data[0].usedBy === '{openid}') {
+							that.doLogin(oldRes.result.data[0]);
+						} else {
+							uni.showToast({ title: '邀请码无效或已使用', icon: 'none' });
+						}
+					});
+					return;
+				}
+				
+				const invite = res.result.data[0];
+				that.doLogin(invite);
+			});
+		},
+		addMoreCode() {
+			const code = this.secondCode.trim().toUpperCase();
+			
+			if (!code) {
+				uni.showToast({ title: '请输入第二个邀请码', icon: 'none' });
+				return;
+			}
+			
+			const db = uniCloud.database();
+			const user = uni.getStorageSync('userInfo');
+			const that = this;
+			
 			db.collection('invite_codes').where({
 				code: code,
 				used: false
@@ -57,7 +101,30 @@ export default {
 				}
 				
 				const invite = res.result.data[0];
-				this.doLogin(invite);
+				
+				// Mark as used
+				db.collection('invite_codes').doc(invite._id).update({
+					used: true,
+					usedBy: '{openid}',
+					usedAt: Date.now()
+				});
+				
+				// Add to user's grades
+				db.collection('users').where({
+					openid: '{openid}'
+				}).get().then(userRes => {
+					const currentGrades = userRes.result.data[0]?.grades || [];
+					const newGrades = [...currentGrades, { grade: invite.grade, className: invite.className }];
+					
+					db.collection('users').where({
+						openid: '{openid}'
+					}).update({
+						grades: newGrades
+					});
+					
+					uni.showToast({ title: `已加入${invite.grade} ${invite.className}`, icon: 'success' });
+					that.secondCode = '';
+				});
 			});
 		},
 		adminLogin() {
@@ -111,7 +178,7 @@ export default {
 						usedAt: Date.now()
 					});
 					
-					// Create user with grade info
+					// Create user with grades array
 					db.collection('users').where({
 						openid: '{openid}'
 					}).get().then(queryRes => {
@@ -121,22 +188,19 @@ export default {
 								nickname: userInfo.nickName,
 								avatar: userInfo.avatarUrl,
 								role: 'parent',
-								grade: invite.grade,
-								className: invite.className,
+								grades: [{ grade: invite.grade, className: invite.className }],
 								subscribe: true,
 								createAt: Date.now()
 							});
 						}
 						
-						userInfo.grade = invite.grade;
-						userInfo.className = invite.className;
+						userInfo.grades = [{ grade: invite.grade, className: invite.className }];
 						userInfo.role = 'parent';
 						uni.setStorageSync('userInfo', userInfo);
 						
+						that.hasLoggedIn = true;
+						
 						uni.showToast({ title: `欢迎加入${invite.grade}`, icon: 'success' });
-						setTimeout(() => {
-							uni.switchTab({ url: '/pages/index/index' });
-						}, 1500);
 					});
 				}
 			});
@@ -224,5 +288,31 @@ export default {
 	padding: 8px 20px;
 	font-size: 13px;
 	margin-top: 10px;
+}
+
+.add-more {
+	width: 100%;
+	margin-top: 40px;
+	text-align: center;
+}
+
+.add-more-title {
+	color: rgba(255,255,255,0.8);
+	font-size: 14px;
+	display: block;
+	margin-bottom: 15px;
+}
+
+.code-input.second {
+	margin-bottom: 10px;
+}
+
+.add-btn {
+	background: rgba(255,255,255,0.2);
+	color: white;
+	border: 1px solid rgba(255,255,255,0.5);
+	border-radius: 20px;
+	padding: 10px 30px;
+	font-size: 14px;
 }
 </style>
