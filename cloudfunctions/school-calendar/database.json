@@ -5,12 +5,6 @@
 			"schema": {
 				"bsonType": "object",
 				"required": ["title", "dateTime"],
-				"permission": {
-					"read": true,
-					"create": "doc.isAdmin == true",
-					"update": "doc.isAdmin == true",
-					"delete": "doc.isAdmin == true"
-				},
 				"properties": {
 					"title": { "bsonType": "string", "label": "活动标题" },
 					"description": { "bsonType": "string", "label": "活动描述" },
@@ -18,9 +12,10 @@
 					"dateTime": { "bsonType": "timestamp", "label": "活动时间" },
 					"location": { "bsonType": "string", "label": "活动地点" },
 					"schoolId": { "bsonType": "string", "label": "学校ID" },
-					"grade": { "bsonType": "string", "label": "适用年级" },
+					"section": { "bsonType": "string", "label": "学部", "enum": ["小学部", "初中部", "高中部"] },
+					"grade": { "bsonType": "array", "label": "适用年级" },
 					"remindBefore": { "bsonType": "int", "label": "提前提醒" },
-					"isAdmin": { "bsonType": "bool", "label": "是否管理员" },
+					"createdBy": { "bsonType": "string", "label": "创建者" },
 					"createdAt": { "bsonType": "timestamp", "label": "创建时间" }
 				}
 			}
@@ -29,11 +24,20 @@
 			"name": "schools",
 			"schema": {
 				"bsonType": "object",
-				"required": ["name"],
 				"properties": {
 					"name": { "bsonType": "string", "label": "学校名称" },
-					"code": { "bsonType": "string", "label": "学校代码" },
-					"createAt": { "bsonType": "timestamp", "label": "创建时间" }
+					"code": { "bsonType": "string", "label": "学校代码" }
+				}
+			}
+		},
+		{
+			"name": "sections",
+			"schema": {
+				"bsonType": "object",
+				"properties": {
+					"schoolId": { "bsonType": "string", "label": "学校ID" },
+					"name": { "bsonType": "string", "label": "学部名称", "enum": ["小学部", "初中部", "高中部"] },
+					"grades": { "bsonType": "array", "label": "年级列表" }
 				}
 			}
 		},
@@ -41,16 +45,33 @@
 			"name": "invite_codes",
 			"schema": {
 				"bsonType": "object",
-				"required": ["code", "schoolId", "grade", "className"],
+				"required": ["code", "schoolId", "section", "grade", "className"],
 				"properties": {
 					"code": { "bsonType": "string", "label": "邀请码" },
 					"schoolId": { "bsonType": "string", "label": "学校ID" },
+					"section": { "bsonType": "string", "label": "学部" },
 					"grade": { "bsonType": "string", "label": "年级" },
 					"className": { "bsonType": "string", "label": "班级" },
-					"used": { "bsonType": "bool", "label": "是否已使用" },
-					"usedBy": { "bsonType": "string", "label": "使用者" },
+					"status": { "bsonType": "string", "label": "状态", "enum": ["pending", "active", "used"] },
+					"userId": { "bsonType": "string", "label": "使用者ID" },
 					"usedAt": { "bsonType": "timestamp", "label": "使用时间" },
-					"createAt": { "bsonType": "timestamp", "label": "创建时间" }
+					"createdAt": { "bsonType": "timestamp", "label": "创建时间" }
+				}
+			}
+		},
+		{
+			"name": "join_requests",
+			"schema": {
+				"bsonType": "object",
+				"required": ["userId", "schoolId", "section", "grade", "className"],
+				"properties": {
+					"userId": { "bsonType": "string", "label": "用户ID" },
+					"schoolId": { "bsonType": "string", "label": "学校ID" },
+					"section": { "bsonType": "string", "label": "学部" },
+					"grade": { "bsonType": "string", "label": "年级" },
+					"className": { "bsonType": "string", "label": "班级" },
+					"status": { "bsonType": "string", "label": "状态", "enum": ["pending", "approved", "rejected"] },
+					"createAt": { "bsonType": "timestamp", "label": "申请时间" }
 				}
 			}
 		},
@@ -73,8 +94,9 @@
 					"openid": { "bsonType": "string", "label": "微信OpenID" },
 					"nickname": { "bsonType": "string", "label": "昵称" },
 					"avatar": { "bsonType": "string", "label": "头像" },
-					"role": { "bsonType": "string", "label": "角色", "enum": ["super_admin", "school_admin", "parent"] },
+					"role": { "bsonType": "string", "label": "角色", "enum": ["super_admin", "section_admin", "grade_admin", "parent"] },
 					"schoolId": { "bsonType": "string", "label": "学校ID" },
+					"section": { "bsonType": "string", "label": "学部" },
 					"grades": { "bsonType": "array", "label": "年级班级" },
 					"subscribe": { "bsonType": "bool", "label": "是否订阅通知" },
 					"createAt": { "bsonType": "timestamp", "label": "注册时间" }

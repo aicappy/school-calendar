@@ -84,28 +84,38 @@ export default {
 		loadEvents() {
 			const db = uniCloud.database();
 			const user = uni.getStorageSync('userInfo');
+			const userRole = user.role;
+			const userSection = user.section;
 			const userGrades = user.grades || [];
-			const schoolId = user.schoolId;
 			
-			// Get all events for this school
+			// Query events based on role
 			let query = db.collection('events');
-			if (schoolId) {
-				query = query.where({ schoolId: schoolId });
-			}
 			
 			query.get().then(res => {
 				let allEvents = res.result.data;
 				
-				// Filter events by user's grades
-				if (user.role === 'parent' && userGrades.length > 0) {
+				// Filter based on role
+				if (userRole === 'parent') {
 					const userGradeNames = userGrades.map(g => g.grade);
 					allEvents = allEvents.filter(event => {
 						const eventGrades = event.grade || [];
-						// Show if event is for "全校" or matches user's grades
-						return eventGrades.includes('全校') || 
-							   eventGrades.some(g => userGradeNames.includes(g));
+						const eventSection = event.section;
+						// Show if: same section AND (全校 OR matches user's grades)
+						if (eventSection !== userSection) return false;
+						return eventGrades.includes('全校') || eventGrades.some(g => userGradeNames.includes(g));
 					});
+				} else if (userRole === 'grade_admin') {
+					// Grade admin sees events for their grades
+					const adminGrades = userGrades.map(g => g.grade);
+					allEvents = allEvents.filter(event => {
+						const eventGrades = event.grade || [];
+						return eventGrades.some(g => adminGrades.includes(g));
+					});
+				} else if (userRole === 'section_admin') {
+					// Section admin sees all events in their section
+					allEvents = allEvents.filter(event => event.section === userSection);
 				}
+				// Super admin sees all
 				
 				this.events = allEvents;
 				this.generateCalendar();
