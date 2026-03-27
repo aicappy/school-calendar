@@ -82,10 +82,32 @@ export default {
 	},
 	methods: {
 		loadEvents() {
-			// Load from cloud database
 			const db = uniCloud.database();
-			db.collection('events').get().then(res => {
-				this.events = res.result.data;
+			const user = uni.getStorageSync('userInfo');
+			const userGrades = user.grades || [];
+			const schoolId = user.schoolId;
+			
+			// Get all events for this school
+			let query = db.collection('events');
+			if (schoolId) {
+				query = query.where({ schoolId: schoolId });
+			}
+			
+			query.get().then(res => {
+				let allEvents = res.result.data;
+				
+				// Filter events by user's grades
+				if (user.role === 'parent' && userGrades.length > 0) {
+					const userGradeNames = userGrades.map(g => g.grade);
+					allEvents = allEvents.filter(event => {
+						const eventGrades = event.grade || [];
+						// Show if event is for "全校" or matches user's grades
+						return eventGrades.includes('全校') || 
+							   eventGrades.some(g => userGradeNames.includes(g));
+					});
+				}
+				
+				this.events = allEvents;
 				this.generateCalendar();
 			});
 		},

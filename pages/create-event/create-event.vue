@@ -39,7 +39,28 @@
 				<textarea class="textarea" v-model="event.description" placeholder="请输入活动介绍" />
 			</view>
 
+			<!-- Grade Selection -->
+			<view class="form-item">
+				<text class="label">适用年级（可多选）</text>
+				<view class="grade-selector">
+					<view 
+						v-for="grade in availableGrades" 
+						:key="grade"
+						:class="['grade-chip', selectedGrades.includes(grade) ? 'selected' : '']"
+						@click="toggleGrade(grade)"
+					>
+						{{ grade }}
+					</view>
+				</view>
+			</view>
+
 			<!-- Remind Option -->
+			<view class="form-item">
+				<text class="label">提醒设置</text>
+				<picker :range="remindOptions" @change="onRemindChange">
+					<view class="picker">{{ remindOptions[event.remindIndex] }}</view>
+				</picker>
+			</view>
 			<view class="form-item">
 				<text class="label">提醒设置</text>
 				<picker :range="remindOptions" @change="onRemindChange">
@@ -66,7 +87,9 @@ export default {
 				description: '',
 				remindIndex: 0
 			},
-			remindOptions: ['不提醒', '提前15分钟', '提前30分钟', '提前1小时', '提前1天']
+			remindOptions: ['不提醒', '提前15分钟', '提前30分钟', '提前1小时', '提前1天'],
+			availableGrades: ['全校', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
+			selectedGrades: []
 		}
 	},
 	methods: {
@@ -78,6 +101,19 @@ export default {
 		},
 		onRemindChange(e) {
 			this.event.remindIndex = e.detail.value;
+		},
+		toggleGrade(grade) {
+			if (grade === '全校') {
+				this.selectedGrades = ['全校'];
+			} else {
+				const idx = this.selectedGrades.indexOf(grade);
+				if (idx > -1) {
+					this.selectedGrades.splice(idx, 1);
+					this.selectedGrades = this.selectedGrades.filter(g => g !== '全校');
+				} else {
+					this.selectedGrades.push(grade);
+				}
+			}
 		},
 		chooseImage() {
 			uni.chooseImage({
@@ -110,6 +146,8 @@ export default {
 				location: this.event.location,
 				imageUrl: this.event.imageUrl,
 				description: this.event.description,
+				grade: this.selectedGrades,  // Array of grades
+				schoolId: uni.getStorageSync('userInfo').schoolId,
 				remindBefore: [0, 15, 30, 60, 1440][this.event.remindIndex],
 				createdAt: Date.now()
 			}).then(() => {
@@ -220,5 +258,26 @@ export default {
 	padding: 14px;
 	font-size: 16px;
 	margin-top: 20px;
+}
+
+.grade-selector {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.grade-chip {
+	padding: 8px 16px;
+	border-radius: 20px;
+	background: #f0f0f0;
+	color: #666;
+	font-size: 14px;
+	border: 2px solid transparent;
+}
+
+.grade-chip.selected {
+	background: #e8f0ff;
+	color: #667eea;
+	border-color: #667eea;
 }
 </style>
