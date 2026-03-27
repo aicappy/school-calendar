@@ -3,7 +3,8 @@
     "pages/login/login",
     "pages/index/index",
     "pages/event-detail/event-detail",
-    "pages/create-event/create-event"
+    "pages/create-event/create-event",
+    "pages/admin/admin"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -27,6 +28,12 @@
         "text": "发布",
         "iconPath": "static/add.png",
         "selectedIconPath": "static/add-active.png"
+      },
+      {
+        "pagePath": "pages/admin/admin",
+        "text": "管理",
+        "iconPath": "static/admin.png",
+        "selectedIconPath": "static/admin-active.png"
       }
     ]
   },

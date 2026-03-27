@@ -7,9 +7,9 @@
 				"required": ["title", "dateTime"],
 				"permission": {
 					"read": true,
-					"create": "auth.uid != null",
-					"update": "auth.uid != null",
-					"delete": "auth.uid != null"
+					"create": "doc.isAdmin == true",
+					"update": "doc.isAdmin == true",
+					"delete": "doc.isAdmin == true"
 				},
 				"properties": {
 					"title": { "bsonType": "string", "label": "活动标题" },
@@ -18,6 +18,7 @@
 					"dateTime": { "bsonType": "timestamp", "label": "活动时间" },
 					"location": { "bsonType": "string", "label": "活动地点" },
 					"remindBefore": { "bsonType": "int", "label": "提前提醒" },
+					"isAdmin": { "bsonType": "bool", "label": "是否管理员" },
 					"createdAt": { "bsonType": "timestamp", "label": "创建时间" }
 				}
 			}
@@ -41,6 +42,7 @@
 					"openid": { "bsonType": "string", "label": "微信OpenID" },
 					"nickname": { "bsonType": "string", "label": "昵称" },
 					"avatar": { "bsonType": "string", "label": "头像" },
+					"role": { "bsonType": "string", "label": "角色", "enum": ["admin", "parent"] },
 					"subscribe": { "bsonType": "bool", "label": "是否订阅通知" },
 					"createAt": { "bsonType": "timestamp", "label": "注册时间" }
 				}

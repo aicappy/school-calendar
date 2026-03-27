@@ -34,11 +34,12 @@ export default {
 								openid: '{openid}'
 							}).get().then(queryRes => {
 								if (queryRes.result.data.length === 0) {
-									// New user
+									// New user - default to parent
 									db.collection('users').add({
 										openid: '{openid}',
 										nickname: userInfo.nickName,
 										avatar: userInfo.avatarUrl,
+										role: 'parent',
 										subscribe: subRes['YOUR_TEMPLATE_ID'] === 'accept',
 										createAt: Date.now()
 									});
@@ -53,6 +54,7 @@ export default {
 									});
 								}
 								
+								userInfo.role = queryRes.result.data[0]?.role || 'parent';
 								uni.setStorageSync('userInfo', userInfo);
 								uni.switchTab({ url: '/pages/index/index' });
 							});

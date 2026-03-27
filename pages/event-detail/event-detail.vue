@@ -32,6 +32,12 @@
 				</button>
 			</view>
 			
+			<!-- Admin Controls -->
+			<view v-if="isAdmin" class="admin-controls">
+				<button class="edit-btn" @click="editEvent">✏️ 编辑</button>
+				<button class="delete-btn" @click="deleteEvent">🗑️ 删除</button>
+			</view>
+			
 			<!-- Remind Button -->
 			<button class="remind-btn" @click="setRemind">
 				🔔 {{ isRemindSet ? '已设置提醒' : '设置提醒' }}
@@ -45,13 +51,15 @@ export default {
 	data() {
 		return {
 			event: {},
-			isRemindSet: false
+			isRemindSet: false,
+			isAdmin: false
 		}
 	},
 	onLoad(options) {
 		if (options.id) {
 			this.loadEvent(options.id);
 		}
+		this.checkAdmin();
 	},
 	onShareAppMessage() {
 		return {
@@ -61,6 +69,10 @@ export default {
 		}
 	},
 	methods: {
+		checkAdmin() {
+			const user = uni.getStorageSync('userInfo');
+			this.isAdmin = user && user.role === 'admin';
+		},
 		loadEvent(id) {
 			const db = uniCloud.database();
 			db.collection('events').doc(id).get().then(res => {
@@ -70,6 +82,28 @@ export default {
 		formatDate(dateTime) {
 			const date = new Date(dateTime);
 			return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+		},
+		editEvent() {
+			uni.navigateTo({
+				url: `/pages/create-event/create-event?id=${this.event._id}`
+			});
+		},
+		deleteEvent() {
+			uni.showModal({
+				title: '确认删除',
+				content: '确定要删除这个活动吗？',
+				success: (res) => {
+					if (res.confirm) {
+						const db = uniCloud.database();
+						db.collection('events').doc(this.event._id).remove().then(() => {
+							uni.showToast({ title: '已删除', icon: 'success' });
+							setTimeout(() => {
+								uni.switchTab({ url: '/pages/index/index' });
+							}, 1500);
+						});
+					}
+				}
+			});
 		},
 		setRemind() {
 			if (this.isRemindSet) return;
@@ -192,5 +226,29 @@ export default {
 .moments-btn {
 	background: #ffcf00;
 	color: #333;
+}
+
+.admin-controls {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 20px;
+}
+
+.edit-btn, .delete-btn {
+	width: 48%;
+	padding: 12px;
+	border-radius: 25px;
+	font-size: 14px;
+	border: none;
+}
+
+.edit-btn {
+	background: #667eea;
+	color: white;
+}
+
+.delete-btn {
+	background: #f44336;
+	color: white;
 }
 </style>
