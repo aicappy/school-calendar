@@ -22,6 +22,16 @@
 				<text class="desc-text">{{ event.description }}</text>
 			</view>
 			
+			<!-- Action Buttons -->
+			<view class="action-buttons">
+				<button class="action-btn share-btn" open-type="share">
+					📤 分享微信群
+				</button>
+				<button class="action-btn moments-btn" @click="shareToMoments">
+					📸 分享朋友圈
+				</button>
+			</view>
+			
 			<!-- Remind Button -->
 			<button class="remind-btn" @click="setRemind">
 				🔔 {{ isRemindSet ? '已设置提醒' : '设置提醒' }}
@@ -43,6 +53,13 @@ export default {
 			this.loadEvent(options.id);
 		}
 	},
+	onShareAppMessage() {
+		return {
+			title: this.event.title,
+			path: `/pages/event-detail/event-detail?id=${this.event._id}`,
+			imageUrl: this.event.imageUrl
+		}
+	},
 	methods: {
 		loadEvent(id) {
 			const db = uniCloud.database();
@@ -57,21 +74,25 @@ export default {
 		setRemind() {
 			if (this.isRemindSet) return;
 			
-			// Request subscription message permission
 			uni.requestSubscribeMessage({
 				tmplIds: ['YOUR_TEMPLATE_ID'],
 				success: (res) => {
-					// Save reminder to cloud database
 					const db = uniCloud.database();
 					db.collection('reminders').add({
 						eventId: this.event._id,
 						userId: uni.getStorageSync('userInfo')._id,
-						remindTime: new Date(this.event.dateTime).getTime() - 3600000 // 1 hour before
+						remindTime: new Date(this.event.dateTime).getTime() - 3600000
 					}).then(() => {
 						this.isRemindSet = true;
 						uni.showToast({ title: '提醒已设置', icon: 'success' });
 					});
 				}
+			});
+		},
+		shareToMoments() {
+			uni.showToast({ 
+				title: '请使用小程序右上角分享',
+				icon: 'none'
 			});
 		}
 	}
@@ -144,7 +165,32 @@ export default {
 	border: none;
 	border-radius: 25px;
 	padding: 12px;
-	margin-top: 30px;
+	margin-top: 15px;
 	font-size: 15px;
+	width: 45%;
+}
+
+.action-buttons {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 20px;
+}
+
+.action-btn {
+	width: 45%;
+	padding: 12px;
+	border-radius: 25px;
+	font-size: 14px;
+	border: none;
+}
+
+.share-btn {
+	background: #07c160;
+	color: white;
+}
+
+.moments-btn {
+	background: #ffcf00;
+	color: #333;
 }
 </style>

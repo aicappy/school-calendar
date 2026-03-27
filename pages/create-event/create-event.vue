@@ -102,6 +102,7 @@ export default {
 
 			const db = uniCloud.database();
 			const dateTime = new Date(`${this.event.date} ${this.event.time}`).getTime();
+			const that = this;
 			
 			db.collection('events').add({
 				title: this.event.title,
@@ -112,6 +113,25 @@ export default {
 				remindBefore: [0, 15, 30, 60, 1440][this.event.remindIndex],
 				createdAt: Date.now()
 			}).then(() => {
+				// Send notification to all users
+				db.collection('users').get().then(res => {
+					const users = res.result.data;
+					users.forEach(user => {
+						if (user.subscribe) {
+							uniCloud.openapi().subscribeMessage.send({
+								touser: user.openid,
+								templateId: 'YOUR_NOTIFICATION_TEMPLATE_ID',
+								page: '/pages/index/index',
+								data: {
+									thing1: { value: that.event.title },
+									time2: { value: new Date(dateTime).toLocaleString() },
+									thing3: { value: that.event.location || '未设置地点' }
+								}
+							});
+						}
+					});
+				});
+				
 				uni.showToast({ title: '发布成功', icon: 'success' });
 				setTimeout(() => {
 					uni.switchTab({ url: '/pages/index/index' });
