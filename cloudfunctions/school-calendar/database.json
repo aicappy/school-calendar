@@ -17,9 +17,32 @@
 					"imageUrl": { "bsonType": "string", "label": "海报图片" },
 					"dateTime": { "bsonType": "timestamp", "label": "活动时间" },
 					"location": { "bsonType": "string", "label": "活动地点" },
+					"grade": { "bsonType": "string", "label": "适用年级" },
 					"remindBefore": { "bsonType": "int", "label": "提前提醒" },
 					"isAdmin": { "bsonType": "bool", "label": "是否管理员" },
 					"createdAt": { "bsonType": "timestamp", "label": "创建时间" }
+				}
+			}
+		},
+		{
+			"name": "invite_codes",
+			"schema": {
+				"bsonType": "object",
+				"required": ["code", "grade", "className"],
+				"permission": {
+					"read": "doc.isAdmin == true",
+					"create": "doc.isAdmin == true",
+					"update": "doc.isAdmin == true",
+					"delete": "doc.isAdmin == true"
+				},
+				"properties": {
+					"code": { "bsonType": "string", "label": "邀请码" },
+					"grade": { "bsonType": "string", "label": "年级" },
+					"className": { "bsonType": "string", "label": "班级" },
+					"used": { "bsonType": "bool", "label": "是否已使用" },
+					"usedBy": { "bsonType": "string", "label": "使用者" },
+					"usedAt": { "bsonType": "timestamp", "label": "使用时间" },
+					"createAt": { "bsonType": "timestamp", "label": "创建时间" }
 				}
 			}
 		},
@@ -43,6 +66,8 @@
 					"nickname": { "bsonType": "string", "label": "昵称" },
 					"avatar": { "bsonType": "string", "label": "头像" },
 					"role": { "bsonType": "string", "label": "角色", "enum": ["admin", "parent"] },
+					"grade": { "bsonType": "string", "label": "年级" },
+					"className": { "bsonType": "string", "label": "班级" },
 					"subscribe": { "bsonType": "bool", "label": "是否订阅通知" },
 					"createAt": { "bsonType": "timestamp", "label": "注册时间" }
 				}

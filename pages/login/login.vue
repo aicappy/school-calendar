@@ -2,63 +2,141 @@
 	<view class="container">
 		<view class="welcome">
 			<text class="title">🏫 家校日历</text>
-			<text class="subtitle">获取最新活动通知</text>
+			<text class="subtitle">请输入邀请码加入</text>
+		</view>
+		
+		<view class="input-group">
+			<input class="code-input" v-model="inviteCode" placeholder="请输入邀请码" maxlength="20" />
 		</view>
 		
 		<button class="login-btn" @click="login">
 			📱 微信授权登录
 		</button>
 		
-		<text class="hint">登录后可以设置活动提醒</text>
+		<text class="hint">联系班级老师或家委会获取邀请码</text>
+		
+		<!-- Admin bypass -->
+		<view v-if="isAdminCode" class="admin-login">
+			<text class="admin-hint">管理员入口</text>
+			<button class="admin-btn" @click="adminLogin">管理登录</button>
+		</view>
 	</view>
 </template>
 
 <script>
 export default {
+	data() {
+		return {
+			inviteCode: '',
+			isAdminCode: false
+		}
+	},
+	watch: {
+		inviteCode(val) {
+			this.isAdminCode = val.toUpperCase() === 'ADMIN001';
+		}
+	},
 	methods: {
 		login() {
-			// Get user profile
+			const code = this.inviteCode.trim().toUpperCase();
+			
+			if (!code) {
+				uni.showToast({ title: '请输入邀请码', icon: 'none' });
+				return;
+			}
+			
+			// Verify invite code
+			const db = uniCloud.database();
+			db.collection('invite_codes').where({
+				code: code,
+				used: false
+			}).get().then(res => {
+				if (res.result.data.length === 0) {
+					uni.showToast({ title: '邀请码无效', icon: 'none' });
+					return;
+				}
+				
+				const invite = res.result.data[0];
+				this.doLogin(invite);
+			});
+		},
+		adminLogin() {
+			const code = this.inviteCode.trim().toUpperCase();
+			
+			if (code !== 'ADMIN001') {
+				uni.showToast({ title: '管理员码无效', icon: 'none' });
+				return;
+			}
+			
+			// Direct admin login without invite code
 			uni.getUserProfile({
-				desc: '用于设置活动提醒',
+				desc: '用于管理员登录',
 				success: (res) => {
 					const userInfo = res.userInfo;
+					const db = uniCloud.database();
 					
-					// Request subscription message permission
-					uni.requestSubscribeMessage({
-						tmplIds: ['YOUR_TEMPLATE_ID'],
-						success: (subRes) => {
-							const db = uniCloud.database();
-							
-							// Save or update user
-							db.collection('users').where({
-								openid: '{openid}'
-							}).get().then(queryRes => {
-								if (queryRes.result.data.length === 0) {
-									// New user - default to parent
-									db.collection('users').add({
-										openid: '{openid}',
-										nickname: userInfo.nickName,
-										avatar: userInfo.avatarUrl,
-										role: 'parent',
-										subscribe: subRes['YOUR_TEMPLATE_ID'] === 'accept',
-										createAt: Date.now()
-									});
-								} else {
-									// Update existing user
-									db.collection('users').where({
-										openid: '{openid}'
-									}).update({
-										nickname: userInfo.nickName,
-										avatar: userInfo.avatarUrl,
-										subscribe: subRes['YOUR_TEMPLATE_ID'] === 'accept'
-									});
-								}
-								
-								userInfo.role = queryRes.result.data[0]?.role || 'parent';
-								uni.setStorageSync('userInfo', userInfo);
-								uni.switchTab({ url: '/pages/index/index' });
+					// Create or update admin user
+					db.collection('users').where({
+						openid: '{openid}'
+					}).get().then(queryRes => {
+						if (queryRes.result.data.length === 0) {
+							db.collection('users').add({
+								openid: '{openid}',
+								nickname: userInfo.nickName,
+								avatar: userInfo.avatarUrl,
+								role: 'admin',
+								createAt: Date.now()
 							});
 						}
+						
+						userInfo.role = 'admin';
+						uni.setStorageSync('userInfo', userInfo);
+						uni.switchTab({ url: '/pages/index/index' });
+					});
+				}
+			});
+		},
+		doLogin(invite) {
+			uni.getUserProfile({
+				desc: '用于完善家长信息',
+				success: (res) => {
+					const userInfo = res.userInfo;
+					const db = uniCloud.database();
+					const that = this;
+					
+					// Mark invite code as used
+					db.collection('invite_codes').doc(invite._id).update({
+						used: true,
+						usedBy: '{openid}',
+						usedAt: Date.now()
+					});
+					
+					// Create user with grade info
+					db.collection('users').where({
+						openid: '{openid}'
+					}).get().then(queryRes => {
+						if (queryRes.result.data.length === 0) {
+							db.collection('users').add({
+								openid: '{openid}',
+								nickname: userInfo.nickName,
+								avatar: userInfo.avatarUrl,
+								role: 'parent',
+								grade: invite.grade,
+								className: invite.className,
+								subscribe: true,
+								createAt: Date.now()
+							});
+						}
+						
+						userInfo.grade = invite.grade;
+						userInfo.className = invite.className;
+						userInfo.role = 'parent';
+						uni.setStorageSync('userInfo', userInfo);
+						
+						uni.showToast({ title: `欢迎加入${invite.grade}`, icon: 'success' });
+						setTimeout(() => {
+							uni.switchTab({ url: '/pages/index/index' });
+						}, 1500);
 					});
 				}
 			});
@@ -80,7 +158,7 @@ export default {
 
 .welcome {
 	text-align: center;
-	margin-bottom: 60px;
+	margin-bottom: 40px;
 }
 
 .title {
@@ -97,6 +175,20 @@ export default {
 	display: block;
 }
 
+.input-group {
+	width: 100%;
+	margin-bottom: 20px;
+}
+
+.code-input {
+	background: white;
+	border-radius: 30px;
+	padding: 15px 20px;
+	font-size: 16px;
+	text-align: center;
+	letter-spacing: 2px;
+}
+
 .login-btn {
 	background: white;
 	color: #667eea;
@@ -105,11 +197,32 @@ export default {
 	padding: 15px 60px;
 	font-size: 16px;
 	font-weight: bold;
+	width: 100%;
 }
 
 .hint {
 	color: rgba(255,255,255,0.7);
 	font-size: 13px;
 	margin-top: 30px;
+}
+
+.admin-login {
+	margin-top: 50px;
+	text-align: center;
+}
+
+.admin-hint {
+	color: rgba(255,255,255,0.5);
+	font-size: 12px;
+}
+
+.admin-btn {
+	background: transparent;
+	color: rgba(255,255,255,0.7);
+	border: 1px solid rgba(255,255,255,0.5);
+	border-radius: 20px;
+	padding: 8px 20px;
+	font-size: 13px;
+	margin-top: 10px;
 }
 </style>

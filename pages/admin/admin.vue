@@ -33,6 +33,24 @@
 				</view>
 			</view>
 		</view>
+		
+		<view class="section">
+			<text class="section-title">🎫 邀请码管理</text>
+			<view class="invite-form">
+				<input class="invite-input" v-model="newGrade" placeholder="年级，如一年级" />
+				<input class="invite-input" v-model="newClass" placeholder="班级，如(1)班" />
+				<button class="gen-btn" @click="generateCode">生成邀请码</button>
+			</view>
+			<view class="code-list">
+				<view v-for="code in inviteCodes" :key="code._id" class="code-item">
+					<text class="code-grade">{{ code.grade }} {{ code.className }}</text>
+					<text class="code-value">{{ code.code }}</text>
+					<text :class="['code-status', code.used ? 'used' : 'unused']">
+						{{ code.used ? '已用' : '可用' }}
+					</text>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -43,7 +61,10 @@ export default {
 			users: [],
 			eventCount: 0,
 			userCount: 0,
-			isSuperAdmin: false
+			isSuperAdmin: false,
+			newGrade: '',
+			newClass: '',
+			inviteCodes: []
 		}
 	},
 	onShow() {
@@ -52,19 +73,21 @@ export default {
 	methods: {
 		loadData() {
 			const user = uni.getStorageSync('userInfo');
-			this.isSuperAdmin = user && user.role === 'super_admin';
+			this.isSuperAdmin = user && user.role === 'admin';
 			
 			const db = uniCloud.database();
 			
-			// Load users
 			db.collection('users').get().then(res => {
 				this.users = res.result.data;
 				this.userCount = res.result.data.length;
 			});
 			
-			// Load events count
 			db.collection('events').count().then(res => {
 				this.eventCount = res.result.total;
+			});
+			
+			db.collection('invite_codes').get().then(res => {
+				this.inviteCodes = res.result.data;
 			});
 		},
 		toggleRole(user) {
@@ -75,6 +98,28 @@ export default {
 				role: newRole
 			}).then(() => {
 				uni.showToast({ title: '已更新', icon: 'success' });
+				this.loadData();
+			});
+		},
+		generateCode() {
+			if (!this.newGrade || !this.newClass) {
+				uni.showToast({ title: '请填写年级和班级', icon: 'none' });
+				return;
+			}
+			
+			const code = `${this.newGrade}${this.newClass}${Date.now().toString().slice(-4)}`.toUpperCase();
+			const db = uniCloud.database();
+			
+			db.collection('invite_codes').add({
+				code: code,
+				grade: this.newGrade,
+				className: this.newClass,
+				used: false,
+				createAt: Date.now()
+			}).then(() => {
+				uni.showToast({ title: '邀请码已生成', icon: 'success' });
+				this.newGrade = '';
+				this.newClass = '';
 				this.loadData();
 			});
 		}
@@ -170,5 +215,70 @@ export default {
 .stat-label {
 	font-size: 13px;
 	color: #999;
+}
+
+.invite-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 15px;
+}
+
+.invite-input {
+	flex: 1;
+	min-width: 120px;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 10px;
+	font-size: 14px;
+}
+
+.gen-btn {
+	background: #667eea;
+	color: white;
+	border: none;
+	border-radius: 8px;
+	padding: 10px 20px;
+	font-size: 14px;
+}
+
+.code-list {
+	margin-top: 10px;
+}
+
+.code-item {
+	display: flex;
+	align-items: center;
+	padding: 10px;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.code-grade {
+	flex: 1;
+	font-size: 14px;
+}
+
+.code-value {
+	font-size: 16px;
+	font-weight: bold;
+	color: #667eea;
+	margin: 0 10px;
+	letter-spacing: 2px;
+}
+
+.code-status {
+	font-size: 12px;
+	padding: 3px 8px;
+	border-radius: 10px;
+}
+
+.code-status.unused {
+	background: #e8f5e9;
+	color: #4caf50;
+}
+
+.code-status.used {
+	background: #ffebee;
+	color: #f44336;
 }
 </style>
