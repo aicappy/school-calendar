@@ -13,6 +13,11 @@
 			📱 微信授权登录
 		</button>
 		
+		<view v-if="!hasLoggedIn" class="opt-out-notice">
+			<switch v-model="optOutNotifications" color="#667eea" />
+			<text class="opt-out-text">关闭活动通知（仅查看日历）</text>
+		</view>
+		
 		<view v-if="hasLoggedIn" class="add-more">
 			<text class="add-more-title">已在多个班级群？</text>
 			<input class="code-input second" v-model="secondCode" placeholder="输入第二个邀请码" maxlength="20" />
@@ -36,7 +41,8 @@ export default {
 			inviteCode: '',
 			secondCode: '',
 			isAdminCode: false,
-			hasLoggedIn: false
+			hasLoggedIn: false,
+			optOutNotifications: false
 		}
 	},
 	watch: {
@@ -180,7 +186,7 @@ export default {
 						usedAt: Date.now()
 					});
 					
-					// Create user with grades array
+					// Create user with grades array and notification preference
 					db.collection('users').where({
 						openid: '{openid}'
 					}).get().then(queryRes => {
@@ -190,19 +196,23 @@ export default {
 								nickname: userInfo.nickName,
 								avatar: userInfo.avatarUrl,
 								role: 'parent',
+								schoolId: invite.schoolId,
 								grades: [{ grade: invite.grade, className: invite.className }],
-								subscribe: true,
+								subscribe: !that.optOutNotifications,
 								createAt: Date.now()
 							});
 						}
 						
 						userInfo.grades = [{ grade: invite.grade, className: invite.className }];
+						userInfo.schoolId = invite.schoolId;
 						userInfo.role = 'parent';
+						userInfo.subscribe = !that.optOutNotifications;
 						uni.setStorageSync('userInfo', userInfo);
 						
 						that.hasLoggedIn = true;
 						
-						uni.showToast({ title: `欢迎加入${invite.grade}`, icon: 'success' });
+						const msg = that.optOutNotifications ? '已加入（关闭通知）' : `欢迎加入${invite.grade}`;
+						uni.showToast({ title: msg, icon: 'success' });
 					});
 				}
 			});
@@ -316,5 +326,21 @@ export default {
 	border-radius: 20px;
 	padding: 10px 30px;
 	font-size: 14px;
+}
+
+.opt-out-notice {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 30px;
+	padding: 15px;
+	background: rgba(255,255,255,0.1);
+	border-radius: 10px;
+}
+
+.opt-out-text {
+	color: rgba(255,255,255,0.8);
+	font-size: 14px;
+	margin-left: 10px;
 }
 </style>
