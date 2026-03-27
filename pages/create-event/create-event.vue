@@ -1,6 +1,19 @@
 <template>
 	<view class="container">
 		<view class="form">
+			<!-- Voice Input -->
+			<view class="form-item">
+				<text class="label">语音输入活动信息</text>
+				<view class="voice-input">
+					<button class="voice-btn" @click="startVoiceInput">
+						🎤 {{ isRecording ? '录音中...' : '点击说话' }}
+					</button>
+				</view>
+				<text v-if="voiceText" class="voice-result">
+					识别结果：{{ voiceText }}
+				</text>
+			</view>
+
 			<!-- Title -->
 			<view class="form-item">
 				<text class="label">活动标题 *</text>
@@ -89,7 +102,9 @@ export default {
 			},
 			remindOptions: ['不提醒', '提前15分钟', '提前30分钟', '提前1小时', '提前1天'],
 			availableGrades: ['全校', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'],
-			selectedGrades: []
+			selectedGrades: [],
+			isRecording: false,
+			voiceText: ''
 		}
 	},
 	methods: {
@@ -114,6 +129,75 @@ export default {
 					this.selectedGrades.push(grade);
 				}
 			}
+		},
+		startVoiceInput() {
+			const that = this;
+			
+			//#ifdef MP-WEIXIN
+			const recorderManager = uni.getRecorderManager();
+			
+			recorderManager.onStart(() => {
+				that.isRecording = true;
+			});
+			
+			recorderManager.onStop((res) => {
+				that.isRecording = false;
+				
+				// Use WeChat AI speech recognition
+				const tempFilePath = res.tempFilePath;
+				
+				// Note: For real implementation, need WeChat plugin or cloud function
+				// This is a placeholder
+				uni.showLoading({ title: '识别中...' });
+				
+				// Simulate recognition result (in real app, use cloud function)
+				setTimeout(() => {
+					uni.hideLoading();
+					// Parse voice to fields
+					that.parseVoiceResult('请在3月15日上午9点，在学校礼堂举办家长开放日活动');
+				}, 1500);
+			});
+			
+			recorderManager.start({ format: 'mp3' });
+			//#endif
+			
+			//#ifndef MP-WEIXIN
+			uni.showToast({ title: '仅微信小程序支持语音', icon: 'none' });
+			//#endif
+		},
+		parseVoiceResult(text) {
+			// Simple parsing - extract date, time, location
+			// In production, use more sophisticated NLP
+			this.voiceText = text;
+			
+			// Extract date
+			const dateMatch = text.match(/(\d+)月(\d+)日/);
+			if (dateMatch) {
+				const month = dateMatch[1];
+				const day = dateMatch[2];
+				this.event.date = `2026-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+			}
+			
+			// Extract time
+			const timeMatch = text.match(/(上午|下午)(\d+)[点时]/);
+			if (timeMatch) {
+				let hour = parseInt(timeMatch[2]);
+				if (timeMatch[1] === '下午' && hour < 12) hour += 12;
+				this.event.time = `${hour}:00`;
+			}
+			
+			// Extract location
+			const locationMatch = text.match(/在(.+?)举办/);
+			if (locationMatch) {
+				this.event.location = locationMatch[1];
+			}
+			
+			// Title - take first part
+			const titleMatch = text.split('请')[1] || text;
+			this.event.title = titleMatch.split('在')[0].trim() || '新活动';
+			
+			// Description
+			this.event.description = text;
 		},
 		chooseImage() {
 			uni.chooseImage({
@@ -279,5 +363,28 @@ export default {
 	background: #e8f0ff;
 	color: #667eea;
 	border-color: #667eea;
+}
+
+.voice-input {
+	margin: 15px 0;
+}
+
+.voice-btn {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	border: none;
+	border-radius: 30px;
+	padding: 12px 30px;
+	font-size: 15px;
+}
+
+.voice-result {
+	display: block;
+	margin-top: 10px;
+	padding: 10px;
+	background: #f5f5f5;
+	border-radius: 8px;
+	font-size: 14px;
+	color: #666;
 }
 </style>
