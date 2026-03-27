@@ -61,10 +61,15 @@ export default {
 			users: [],
 			eventCount: 0,
 			userCount: 0,
+			schoolId: '',
+			schoolName: '',
 			isSuperAdmin: false,
+			canManageRole: false,
 			newGrade: '',
 			newClass: '',
-			inviteCodes: []
+			newSchoolName: '',
+			inviteCodes: [],
+			schools: []
 		}
 	},
 	onShow() {
@@ -73,11 +78,26 @@ export default {
 	methods: {
 		loadData() {
 			const user = uni.getStorageSync('userInfo');
-			this.isSuperAdmin = user && user.role === 'admin';
+			this.schoolId = user.schoolId || '';
+			this.schoolName = user.schoolName || '全部学校';
+			this.isSuperAdmin = user && user.role === 'super_admin';
+			this.canManageRole = user && (user.role === 'super_admin' || user.role === 'school_admin');
 			
 			const db = uniCloud.database();
 			
-			db.collection('users').get().then(res => {
+			// Load schools (super admin only)
+			if (this.isSuperAdmin) {
+				db.collection('schools').get().then(res => {
+					this.schools = res.result.data;
+				});
+			}
+			
+			// Load users
+			let userQuery = db.collection('users');
+			if (!this.isSuperAdmin && this.schoolId) {
+				userQuery = userQuery.where({ schoolId: this.schoolId });
+			}
+			userQuery.get().then(res => {
 				this.users = res.result.data;
 				this.userCount = res.result.data.length;
 			});
@@ -86,13 +106,26 @@ export default {
 				this.eventCount = res.result.total;
 			});
 			
-			db.collection('invite_codes').get().then(res => {
+			// Load invite codes
+			let codeQuery = db.collection('invite_codes');
+			if (!this.isSuperAdmin && this.schoolId) {
+				codeQuery = codeQuery.where({ schoolId: this.schoolId });
+			}
+			codeQuery.get().then(res => {
 				this.inviteCodes = res.result.data;
 			});
 		},
+		getRoleText(role) {
+			const roles = { 'super_admin': '超级管理员', 'school_admin': '学校管理员', 'parent': '家长' };
+			return roles[role] || role;
+		},
+		formatGrades(grades) {
+			if (!grades) return '';
+			return grades.map(g => `${g.grade}${g.className}`).join(', ');
+		},
 		toggleRole(user) {
 			const db = uniCloud.database();
-			const newRole = user.role === 'admin' ? 'parent' : 'admin';
+			const newRole = user.role === 'school_admin' ? 'parent' : 'school_admin';
 			
 			db.collection('users').doc(user._id).update({
 				role: newRole
@@ -101,17 +134,33 @@ export default {
 				this.loadData();
 			});
 		},
+		addSchool() {
+			if (!this.newSchoolName) return;
+			const db = uniCloud.database();
+			const code = 'SCH' + Date.now().toString().slice(-4);
+			
+			db.collection('schools').add({
+				name: this.newSchoolName,
+				code: code,
+				createAt: Date.now()
+			}).then(() => {
+				uni.showToast({ title: '学校已添加', icon: 'success' });
+				this.newSchoolName = '';
+				this.loadData();
+			});
+		},
 		generateCode() {
-			if (!this.newGrade || !this.newClass) {
-				uni.showToast({ title: '请填写年级和班级', icon: 'none' });
+			if (!this.newGrade || !this.newClass || !this.schoolId) {
+				uni.showToast({ title: '请填写完整信息', icon: 'none' });
 				return;
 			}
 			
-			const code = `${this.newGrade}${this.newClass}${Date.now().toString().slice(-4)}`.toUpperCase();
+			const code = `${this.schoolId.toUpperCase()}${this.newGrade}${this.newClass}${Date.now().toString().slice(-4)}`;
 			const db = uniCloud.database();
 			
 			db.collection('invite_codes').add({
 				code: code,
+				schoolId: this.schoolId,
 				grade: this.newGrade,
 				className: this.newClass,
 				used: false,

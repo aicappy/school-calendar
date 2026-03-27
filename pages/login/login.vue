@@ -156,7 +156,9 @@ export default {
 							});
 						}
 						
-						userInfo.role = 'admin';
+						userInfo.schoolId = school._id;
+						userInfo.schoolName = school.name;
+						userInfo.role = 'school_admin';
 						uni.setStorageSync('userInfo', userInfo);
 						uni.switchTab({ url: '/pages/index/index' });
 					});
