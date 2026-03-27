@@ -246,32 +246,55 @@ export default {
 			
 			db.collection('events').add({
 				title: this.event.title,
+				category: this.event.category,
 				dateTime: dateTime,
 				location: this.event.location,
 				imageUrl: this.event.imageUrl,
 				description: this.event.description,
-				grade: this.selectedGrades,  // Array of grades
-				schoolId: uni.getStorageSync('userInfo').schoolId,
+				grade: this.selectedGrades,
+				section: uni.getStorageSync('userInfo').section,
 				remindBefore: [0, 15, 30, 60, 1440][this.event.remindIndex],
+				createdBy: '{openid}',
 				createdAt: Date.now()
 			}).then(() => {
-				// Send notification to all users
-				db.collection('users').get().then(res => {
-					const users = res.result.data;
-					users.forEach(user => {
-						if (user.subscribe) {
-							uniCloud.openapi().subscribeMessage.send({
-								touser: user.openid,
-								templateId: 'YOUR_NOTIFICATION_TEMPLATE_ID',
-								page: '/pages/index/index',
-								data: {
-									thing1: { value: that.event.title },
-									time2: { value: new Date(dateTime).toLocaleString() },
-									thing3: { value: that.event.location || '未设置地点' }
-								}
-							});
-						}
+				// Send notification ONLY to relevant grade parents
+				const targetGrades = this.selectedGrades;
+				const userSection = uni.getStorageSync('userInfo').section;
+				
+				db.collection('users').where({
+					role: 'parent',
+					section: userSection,
+					subscribe: true
+				}).get().then(res => {
+					const parents = res.result.data;
+					const that = this;
+					
+					// Filter only parents whose grades match
+					const targetParents = parents.filter(p => {
+						const pGrades = p.grades || [];
+						return targetGrades.includes('全校') || 
+							   targetGrades.some(g => pGrades.some(pg => pg.grade === g));
 					});
+					
+					// Send in batches of 50 to avoid rate limit
+					const batchSize = 50;
+					for (let i = 0; i < targetParents.length; i += batchSize) {
+						setTimeout(() => {
+							const batch = targetParents.slice(i, i + batchSize);
+							batch.forEach(user => {
+								uniCloud.openapi().subscribeMessage.send({
+									touser: user.openid,
+									templateId: 'YOUR_TEMPLATE_ID',
+									page: '/pages/index/index',
+									data: {
+										thing1: { value: that.event.title },
+										time2: { value: new Date(dateTime).toLocaleString() },
+										thing3: { value: targetGrades.join(', ') }
+									}
+								}).catch(() => {}); // Ignore individual errors
+							});
+						}, i * 1000); // 1 second delay between batches
+					}
 				});
 				
 				uni.showToast({ title: '发布成功', icon: 'success' });
